@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useWebSocket } from "./hooks/useWebSocket";
+import ChatBox from "./components/chetBox";
 
 interface Meteor {
   id: number;
@@ -21,12 +23,13 @@ const generateMeteors = (): Meteor[] => {
 
 // const meteors = generateMeteors();
 
-
 export default function AIChatPage() {
   const [meteors, setMeteors] = useState<Meteor[]>([]);
   const [showWelcome, setShowWelcome] = useState(true);
   const [inputValue, setInputValue] = useState('');
   
+  const {messages, sendMessage} = useWebSocket('ws://localhost:3000/api/ws');
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMeteors(generateMeteors());
@@ -37,6 +40,13 @@ export default function AIChatPage() {
     if (e.target.value.trim() !== '') {
       setShowWelcome(false);
     }
+  };
+  
+  const handleSend = () => {
+    if(!inputValue.trim()) return;
+    sendMessage(inputValue);
+    setInputValue('');
+    setShowWelcome(false);
   };
   
   return (
@@ -70,39 +80,12 @@ export default function AIChatPage() {
 
       {/* 毛玻璃对话界面 */}
       {!showWelcome && (
-        <div className="absolute top-1/2 left-1/2 transform w-[80%] translate-y-[-25%] max-h-[60vh] animate-fadeIn">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent blur-2xl animate-fadeIn"></div>
-          <div className="relative bg-gradient-to-b from-slate-800/40 to-slate-900/40 backdrop-blur-2xl rounded-3xl border border-slate-700/30 shadow-2xl p-6">
-            <div className="h-[calc(80vh-120px)] overflow-y-auto">
-              <div className="flex gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex-shrink-0 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="bg-slate-800/70 rounded-2xl rounded-tl-sm p-3 text-slate-200 text-sm">
-                    您好！我是您的AI助手，有什么我可以帮助您的吗？
-                  </div>
-                </div>
-              </div>
-              {inputValue && (
-                <div className="flex gap-3 mb-4 justify-end">
-                  <div className="flex-1 max-w-[80%]">
-                    <div className="bg-blue-500/20 rounded-2xl rounded-tr-sm p-3 text-slate-200 text-sm">
-                      {inputValue}
-                    </div>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <ChatBox
+          messages={messages}
+          inputValue={inputValue}
+          onInputChange={handleInputChange}
+          onSend={handleSend}
+        />
       )}
 
       {/* 下方聊天框框弹窗 */}
@@ -116,6 +99,12 @@ export default function AIChatPage() {
                 placeholder="来和我聊天吧~"
                 value={inputValue}
                 onChange={handleInputChange}
+                onKeyDown={(e) => {
+                  if(e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 className="w-full h-20 px-4 rounded-md bg-transparent focus:outline-none focus:ring-0 text-white placeholder-slate-500"
               />
             </div>
