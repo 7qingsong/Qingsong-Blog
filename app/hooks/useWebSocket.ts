@@ -8,7 +8,7 @@ interface Message {
 export function useWebSocket(url: string) {
   const ws = useRef<WebSocket | null>(null)
   const [messages, setMessages] = useState<Message[]>([
-    { content: '你好!有没有什么可以跟我聊聊的呢', isUser: true },
+    { content: '你好!有没有什么可以跟我聊聊的呢', isUser: false },
   ])
 
   // 连接websocket

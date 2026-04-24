@@ -37,7 +37,7 @@ function getServer() {
 
 export async function GET(req: NextRequest) {
   const upgrade = req.headers.get('upgrade') || ''
-  if(upgrade.toLowerCase() === 'websocket'){
+  if(upgrade.toLowerCase() !== 'websocket'){
     return new Response('需要websocket连接', {status: 400})
   }
   // @ts-expect-error: Next.js 内部 socket 类型兼容
