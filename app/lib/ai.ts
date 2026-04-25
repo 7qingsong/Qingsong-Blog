@@ -11,9 +11,9 @@ export interface AIConfig {
 }
 
 export const aiConfig: AIConfig = {
-  apiKey: 'YOUR_API_KEY_HERE',
-  baseUrl: 'https://api.deepseek.com/v1',
-  model: 'deepseek-chat',
+  apiKey: 'sk-aqdmsksxyqqlzfwpvdstlabzsevitvqihpnmwcubxlvovvwr',
+  baseUrl: 'https://api.siliconflow.cn/v1/chat/completions',
+  model: 'Qwen/Qwen2.5-32B-Instruct',
   systemPrompt: '你叫青松，一个乐于助人的聊天助手。请用友好、简洁且幽默的方式回答用户的问题。'
 }
 
@@ -25,7 +25,7 @@ export async function createAIChat(config: AIConfig = aiConfig) {
   const sendMessage = async (userMessage: string, onChunk: (chunk: string) => void): Promise<string> => {
     messages.push({ role: 'user', content: userMessage })
 
-    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    const response = await fetch(`${config.baseUrl}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
