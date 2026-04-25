@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react'
-import { sendAIMessage, aiConfig, AIConfig } from '../lib/ai'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { createAIChat, aiConfig, AIConfig, ChatInstance } from '../lib/ai'
 
 interface Message {
   id: string
@@ -11,12 +11,20 @@ let messageIdCounter = 0
 
 export function useAIChat(config?: AIConfig) {
   const [messages, setMessages] = useState<Message[]>([
-    { id: String(messageIdCounter++), content: '你好!有没有什么可以跟我聊聊的呢', isUser: false },
+    { id: String(messageIdCounter++), content: '你好！有没有什么可以跟我聊聊的呢', isUser: false },
   ])
   const [isLoading, setIsLoading] = useState(false)
+  const chatRef = useRef<ChatInstance | null>(null)
   const contentBufferRef = useRef('')
   const pendingMessagesRef = useRef<string[]>([])
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    const initChat = async () => {
+      chatRef.current = await createAIChat(config || aiConfig)
+    }
+    initChat()
+  }, [config])
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return
@@ -49,7 +57,11 @@ export function useAIChat(config?: AIConfig) {
     }
 
     try {
-      await sendAIMessage(
+      if (!chatRef.current) {
+        chatRef.current = await createAIChat(config || aiConfig)
+      }
+
+      await chatRef.current.sendMessage(
         text,
         (chunk) => {
           contentBufferRef.current += chunk
@@ -97,8 +109,7 @@ export function useAIChat(config?: AIConfig) {
               })
             }
           }
-        },
-        config || aiConfig
+        }
       )
 
       setTimeout(() => {

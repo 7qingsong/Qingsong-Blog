@@ -3,6 +3,11 @@ export interface ChatMessage {
   content: string
 }
 
+export interface ChatInstance {
+  sendMessage: (userMessage: string, onChunk: (chunk: string) => void) => Promise<string>
+  messages: ChatMessage[]
+}
+
 export interface AIConfig {
   apiKey: string
   baseUrl: string
@@ -17,13 +22,26 @@ export const aiConfig: AIConfig = {
   systemPrompt: '你叫青松，一个乐于助人的聊天助手。请用友好、简洁且幽默的方式回答用户的问题。'
 }
 
-export async function createAIChat(config: AIConfig = aiConfig) {
+export async function createAIChat(config: AIConfig = aiConfig): Promise<ChatInstance> {
   const messages: ChatMessage[] = [
     { role: 'system', content: config.systemPrompt }
   ]
 
+  const compressContext = () => {
+    if (messages.length > 10) {
+      const recentMessages = messages.slice(-8)
+      const compressedContext = {
+        role: 'system' as const,
+        content: `对话历史摘要：\n${recentMessages.map(m => `${m.role === 'user' ? '用户' : '助手'}: ${m.content}`).join('\n')}`
+      }
+      messages.splice(1, messages.length - 8, compressedContext)
+    }
+  }
+
   const sendMessage = async (userMessage: string, onChunk: (chunk: string) => void): Promise<string> => {
     messages.push({ role: 'user', content: userMessage })
+    
+    compressContext()
 
     const response = await fetch(`${config.baseUrl}`, {
       method: 'POST',
@@ -75,6 +93,7 @@ export async function createAIChat(config: AIConfig = aiConfig) {
     }
 
     messages.push({ role: 'assistant', content: fullContent })
+    compressContext()
     return fullContent
   }
 
