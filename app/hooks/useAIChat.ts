@@ -66,22 +66,20 @@ export function useAIChat(config?: AIConfig) {
         (chunk) => {
           contentBufferRef.current += chunk
 
-          const endsWithPunct = ['。', '？', '！'].some(punct => chunk.includes(punct))
+          const sentences: string[] = []
+          let current = ''
 
-          if (endsWithPunct) {
-            const sentences: string[] = []
-            let current = ''
-
-            for (const char of contentBufferRef.current) {
-              current += char
-              if (['。', '？', '！'].includes(char)) {
-                sentences.push(current.trim())
-                current = ''
-              }
+          for (const char of contentBufferRef.current) {
+            current += char
+            if (['。', '？', '！'].includes(char)) {
+              sentences.push(current.trim())
+              current = ''
             }
+          }
 
-            contentBufferRef.current = current
+          contentBufferRef.current = current
 
+          if (sentences.length > 0) {
             for (const sentence of sentences) {
               if (sentence) {
                 pendingMessagesRef.current.push(sentence)
@@ -91,23 +89,6 @@ export function useAIChat(config?: AIConfig) {
             if (!timeoutRef.current) {
               processNext()
             }
-          } else {
-            if (contentBufferRef.current.length > 0) {
-              const currentContent = contentBufferRef.current
-              setMessages(prev => {
-                const lastIndex = prev.length - 1
-                if (lastIndex >= 0 && !prev[lastIndex].isUser) {
-                  const updated = [...prev]
-                  updated[lastIndex] = {
-                    ...updated[lastIndex],
-                    content: currentContent
-                  }
-                  return updated
-                } else {
-                  return [...prev, { id: String(messageIdCounter++), content: currentContent, isUser: false }]
-                }
-              })
-            }
           }
         }
       )
@@ -115,34 +96,17 @@ export function useAIChat(config?: AIConfig) {
       setTimeout(() => {
         if (contentBufferRef.current.trim()) {
           const lastContent = contentBufferRef.current.trim()
-          setMessages(prev => {
-            const lastIndex = prev.length - 1
-            if (lastIndex >= 0 && !prev[lastIndex].isUser) {
-              if (prev[lastIndex].content !== lastContent) {
-                const updated = [...prev]
-                updated[lastIndex] = {
-                  ...updated[lastIndex],
-                  content: lastContent
-                }
-                return updated
-              }
-            }
-            return prev
-          })
+          pendingMessagesRef.current.push(lastContent)
+          if (!timeoutRef.current) {
+            processNext()
+          }
         }
       }, 100)
     } catch (error) {
-      setMessages(prev => {
-        const updated = [...prev]
-        const lastIndex = updated.length - 1
-        if (lastIndex >= 0 && !updated[lastIndex].isUser) {
-          updated[lastIndex] = {
-            ...updated[lastIndex],
-            content: '抱歉，发生了错误，请稍后重试。'
-          }
-        }
-        return updated
-      })
+      pendingMessagesRef.current.push('抱歉，发生了错误，请稍后重试。')
+      if (!timeoutRef.current) {
+        processNext()
+      }
       console.error('AI消息发送失败:', error)
     } finally {
       setIsLoading(false)
